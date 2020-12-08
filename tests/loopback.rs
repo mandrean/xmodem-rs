@@ -12,6 +12,7 @@ struct BidirectionalPipe {
     pout: Sender<u8>,
 }
 
+#[allow(clippy::needless_range_loop)]
 impl Read for BidirectionalPipe {
     fn read(&mut self, buf: &mut [u8]) -> io::Result<usize> {
         for idx in 0..buf.len() {
@@ -46,6 +47,7 @@ fn loopback() -> (BidirectionalPipe, BidirectionalPipe) {
     )
 }
 
+#[allow(clippy::same_item_push, clippy::needless_range_loop)]
 #[cfg(test)]
 fn xmodem_loopback(checksum_mode: Checksum, block_length: BlockLength, data_len: usize) {
     let mut data_out = vec![0; data_len];

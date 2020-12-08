@@ -30,6 +30,7 @@ impl Write for ChildStdInOut {
     }
 }
 
+#[allow(clippy::same_item_push)]
 #[cfg(test)]
 fn xmodem_recv(checksum_mode: Checksum, block_length: BlockLength, data_len: usize) {
     let mut data = vec![0; data_len];
@@ -40,9 +41,8 @@ fn xmodem_recv(checksum_mode: Checksum, block_length: BlockLength, data_len: usi
 
     let mut send_builder = Command::new("sb");
     send_builder.arg("--xmodem");
-    match block_length {
-        BlockLength::OneK => { send_builder.arg("--1k"); }
-        _ => {}
+    if let BlockLength::OneK = block_length {
+        send_builder.arg("--1k");
     }
     let send = send_builder
         .arg(send_file.path())
@@ -95,6 +95,7 @@ fn xmodem_recv_long() {
     xmodem_recv(Checksum::CRC16, BlockLength::Standard, 50000);
 }
 
+#[allow(clippy::same_item_push)]
 #[test]
 fn xmodem_send_standard() {
     let data_len = 2000;
@@ -118,8 +119,7 @@ fn xmodem_send_standard() {
         stdout: rx_stream,
     };
 
-    let mut xmodem = Xmodem::new();
-    xmodem.send(&mut serial_dev, &mut &data[..]).unwrap();
+    Xmodem::new().send(&mut serial_dev, &mut &data[..]).unwrap();
 
     let mut received_data = Vec::new();
     recv_file.read_to_end(&mut received_data).unwrap();
@@ -130,6 +130,7 @@ fn xmodem_send_standard() {
     assert_eq!(received_data, padded_data);
 }
 
+#[allow(clippy::same_item_push)]
 #[test]
 fn xmodem_send_crc() {
     let data_len = 2000;
@@ -154,8 +155,7 @@ fn xmodem_send_crc() {
         stdout: rx_stream,
     };
 
-    let mut xmodem = Xmodem::new();
-    xmodem.send(&mut serial_dev, &mut &data[..]).unwrap();
+    Xmodem::new().send(&mut serial_dev, &mut &data[..]).unwrap();
 
     let mut received_data = Vec::new();
     recv_file.read_to_end(&mut received_data).unwrap();
