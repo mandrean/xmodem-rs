@@ -2,8 +2,8 @@
 extern crate log;
 extern crate crc16;
 
-use std::io::{self, Read, Write};
 use std::convert::From;
+use std::io::{self, Read, Write};
 
 // TODO: Send CAN byte after too many errors
 // TODO: Handle CAN bytes while sending
@@ -122,10 +122,12 @@ impl Xmodem {
     /// to set the timeout of the device before calling this method. Timeouts on receiving
     /// bytes will be counted against `max_errors`, but timeouts on transmitting bytes
     /// will be considered a fatal error.
-    pub fn recv<D: Read + Write, W: Write>(&mut self,
-                                           dev: &mut D,
-                                           outstream: &mut W,
-                                           checksum : Checksum) -> Result<()> {
+    pub fn recv<D: Read + Write, W: Write>(
+        &mut self,
+        dev: &mut D,
+        outstream: &mut W,
+        checksum: Checksum,
+    ) -> Result<()> {
         self.errors = 0;
         self.checksum_mode = checksum;
         debug!("Starting XMODEM receive");
@@ -134,7 +136,7 @@ impl Xmodem {
             Checksum::CRC16 => CRC,
         }])?;
         debug!("NCG sent. Receiving stream.");
-        let mut packet_num : u8 = 1;
+        let mut packet_num: u8 = 1;
         loop {
             match get_byte_timeout(dev)? {
                 bt @ Some(SOH) | bt @ Some(STX) => {
@@ -184,17 +186,23 @@ impl Xmodem {
                 }
                 Some(_) => {
                     warn!("Unrecognized symbol!");
-                },
-                None => { self.errors += 1; warn!("Timeout!") },
+                }
+                None => {
+                    self.errors += 1;
+                    warn!("Timeout!")
+                }
             }
             if self.errors >= self.max_errors {
-                error!("Exhausted max retries ({}) while waiting for ACK for EOT", self.max_errors);
+                error!(
+                    "Exhausted max retries ({}) while waiting for ACK for EOT",
+                    self.max_errors
+                );
                 return Err(Error::ExhaustedRetries);
             }
         }
         Ok(())
     }
-          
+
     fn start_send<D: Read + Write>(&mut self, dev: &mut D) -> Result<()> {
         let mut cancels = 0u32;
         loop {
@@ -222,13 +230,18 @@ impl Xmodem {
             self.errors += 1;
 
             if cancels >= 2 {
-                error!("Transmission canceled: received two cancel (CAN) bytes \
-                        at start of XMODEM transfer");
+                error!(
+                    "Transmission canceled: received two cancel (CAN) bytes \
+                        at start of XMODEM transfer"
+                );
                 return Err(Error::Canceled);
             }
 
             if self.errors >= self.max_errors {
-                error!("Exhausted max retries ({}) at start of XMODEM transfer.", self.max_errors);
+                error!(
+                    "Exhausted max retries ({}) at start of XMODEM transfer.",
+                    self.max_errors
+                );
                 if let Err(err) = dev.write_all(&[CAN]) {
                     warn!("Error sending CAN byte: {}", err);
                 }
@@ -259,7 +272,7 @@ impl Xmodem {
                 Checksum::Standard => {
                     let checksum = calc_checksum(&buff[3..]);
                     buff.push(checksum);
-                },
+                }
                 Checksum::CRC16 => {
                     let crc = calc_crc(&buff[3..]);
                     buff.push(((crc >> 8) & 0xFF) as u8);
@@ -274,20 +287,22 @@ impl Xmodem {
                 Some(c) => {
                     if c == ACK {
                         debug!("Received ACK for block {}", block_num);
-                        continue
+                        continue;
                     } else {
                         warn!("Expected ACK, got {}", c);
                     }
                     // TODO handle CAN bytes
-                },
+                }
                 None => warn!("Timeout waiting for ACK for block {}", block_num),
             }
 
             self.errors += 1;
 
             if self.errors >= self.max_errors {
-                error!("Exhausted max retries ({}) while sending block {} in XMODEM transfer",
-                       self.max_errors, block_num);
+                error!(
+                    "Exhausted max retries ({}) while sending block {} in XMODEM transfer",
+                    self.max_errors, block_num
+                );
                 return Err(Error::ExhaustedRetries);
             }
         }
@@ -305,14 +320,17 @@ impl Xmodem {
                     } else {
                         warn!("Expected ACK, got {}", c);
                     }
-                },
+                }
                 None => warn!("Timeout waiting for ACK for EOT"),
             }
 
             self.errors += 1;
 
             if self.errors >= self.max_errors {
-                error!("Exhausted max retries ({}) while waiting for ACK for EOT", self.max_errors);
+                error!(
+                    "Exhausted max retries ({}) while waiting for ACK for EOT",
+                    self.max_errors
+                );
                 return Err(Error::ExhaustedRetries);
             }
         }
