@@ -69,6 +69,12 @@ pub struct Xmodem {
     errors: u32,
 }
 
+impl Default for Xmodem {
+    fn default() -> Self {
+        Xmodem::new()
+    }
+}
+
 impl Xmodem {
     /// Creates the XMODEM config with default parameters.
     pub fn new() -> Self {
